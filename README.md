@@ -15,7 +15,11 @@ Error A1: The TIME_MAX maximum time for the execution of a motor command has bee
 
 Error C1: In the calibrate function, if no satisfactory integer is returned by the iscorrectmotor function (not -1, 0 or 1), this means that no button has been hit and the time has NOT been exceeded, which means the function has terminated for some other issue.
 
-Error C2: In the calibrate function, if no satisfactory integer is returned by the iscorrectdirectionA function. Analog to Error C1
+Error C2: Analog to C1 but for the iscorrectdirectionA function
+
+Error C3: Analog to C2 but for the iscorrectdirectionB function
+
+Error C4: This occurs when no satisfactory return is given for the calibratecorner function. This means that not all buttons were reached but the time limit has not elapsed, or any other default case was returned.
 
 NEEDED
 - Small code snippet to output servo angles when starting the build

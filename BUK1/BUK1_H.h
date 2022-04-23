@@ -7,11 +7,9 @@
 
 #include "Arduino.h";
 #include "Servo.h";
-#include "string"
 
 typedef byte pin;
 typedef unsigned int bit;
-typedef string filename;
 
 //Various angles and such
 #define _SERVO_TOP      180
@@ -61,6 +59,8 @@ class BUKPlt{
         int iscorrectdirectionB(bit bitspeed);
         int calibratecorner(bit bitspeed);
         bool readinstructions(const filename& nameoffile);
+
+        bool drawlineto(float x, float y);
 };
 
 #endif

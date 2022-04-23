@@ -124,45 +124,58 @@ bool BUKPlt::calibrate(bit bitspeed){
     Serial.print("SETUP || Do motors need to be switched?");
     int instance = this->iscorrectmotor(bitspeed);
     switch(instance){
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); break;}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false}
         case 0: {
             Serial.println("SETUP || Motors need to be switched");
             flipmotors();
             break;
         }
         case 1: {Serial.println("SETUP || Motors do not need to be flipped"); break;}
-        default: {Serial.println("SETUP || ERROR C1"); break;}
+        default: {Serial.println("SETUP || ERROR C1"); return false}
     }
 
     Serial.print("SETUP || Motor A: Does direction need to be changed?");
     instance = this->iscorrectdirectionA(bitspeed);
     switch(instance){
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); break;}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false}
         case 0: {
             Serial.println("SETUP || Motor A direction needs to be flipped");
             flipdirection(xforward, xback);
             break;
         }
         case 1: {Serial.println("SETUP || Motor A direction do not need to be flipped"); break;}
-        default: {Serial.println("SETUP || ERROR C2"); break;}
+        default: {Serial.println("SETUP || ERROR C2"); return false}
     }
 
     Serial.print("SETUP || Motor B: Does direction need to be changed?");
     instance = this->iscorrectdirectionB(bitspeed);
     switch(instance){
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); break;}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false}
         case 0: {
             Serial.println("SETUP || Motor B direction needs to be flipped");
             flipdirection(yforward, yback);
             break;
         }
         case 1: {Serial.println("SETUP || Motor B direction do not need to be flipped"); break;}
-        default: {Serial.println("SETUP || ERROR C2"); break;}
+        default: {Serial.println("SETUP || ERROR C3"); return false}
     }
 
     Serial.print("SETUP || Motor Setup Complete, moving to corner");
     instance = this->calibratecorner(bitspeed);
-    switch(instance);
+    switch(instance){
+        case -2: {Serial.println("SETUP || ERROR A1: Time limit passed on y direction (Motor B)"); return false}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed on x direction (Motor A)"); return false}
+        case 1: {
+            Serial.println("SETUP || Corner successfully reached. Preparing coordinates"); 
+            servo_down();
+            delay(500);
+            servo_up();
+            xpos = 0.1f;
+            ypos = 0.1f;
+            return true
+        }
+        default: {Serial.println("SETUP || ERROR C4"); return false}
+    }
 
 }
 
@@ -224,7 +237,7 @@ int BUKPlt::iscorrectdirectionA(bit bitspeed){
     if (digitalRead(_BUTTON_XTOP) == HIGH){
         instance = 0;
     }
-    if (digitalRead(_BUTTON_XBTM)){
+    if (digitalRead(_BUTTON_XBTM) == HIGH){
         instance = 1;
     }
     set_direction(_DIR_A, xforward);
@@ -254,7 +267,7 @@ int BUKPlt::iscorrectdirectionB(bit bitspeed){
     if (digitalRead(_BUTTON_YTOP) == HIGH){
         instance = 0;
     }
-    if (digitalRead(_BUTTON_YBTM)){
+    if (digitalRead(_BUTTON_YBTM) == HIGH){
         instance = 1;
     }
     set_direction(_DIR_B, yforward);
@@ -265,6 +278,9 @@ int BUKPlt::iscorrectdirectionB(bit bitspeed){
 }
 
 int BUKPlt::calibratecorner(bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+
     set_direction(_DIR_A, xback);
     set_speed(_SPEED_A, bitspeed);
     set_brakes(_BRAKE_A, LOW);
@@ -272,5 +288,34 @@ int BUKPlt::calibratecorner(bit bitspeed){
     while (digitalRead(_BUTTON_XBTM) == LOW && micros()<=sandclock+TIME_MAX){
         //welcome to the waiting queue
     }
-    set_brakes(_BRAKE)
+    set_brakes(_BRAKE_A, HIGH);
+
+    if (micros()>=sandclock+TIME_MAX){
+        return -1
+    }
+    if (digitalRead(_BUTTON_XBTM) == HIGH){
+        set_direction(_DIR_B, yback);
+        set_speed(_SPEED_B, bitspeed);
+        set_brakes(_BRAKE_B, LOW);
+        sandclock = micros();
+        while (digitalRead(_BUTTON_YBTM) == LOW && micros()<=sandclock+TIME_MAX){
+        //welcome to the waiting queue
+        }
+        set_brakes(_BRAKE_B, HIGH);
+
+        if (micros()>=sandclock+TIME_MAX){
+            return -2;
+        }
+        if (digitalRead(_BUTTON_YBTM) == HIGH){
+            return 1;
+        }
+        return -3;
+    }
+    return 0;
 }
+
+bool BUKPlt::drawlineto(){
+    servo_up();
+}
+
+
