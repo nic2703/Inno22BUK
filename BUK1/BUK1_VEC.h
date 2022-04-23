@@ -4,6 +4,7 @@
 //this code is mainly copied from plt_maths.h
 
 #include <Arduino.h>
+const float tolerance = 0.25;
 
 class BUKvec{
     private:
@@ -14,24 +15,29 @@ class BUKvec{
         ~BUKvec();
         BUKvec& operator=(const BUKvec&);
         float& operator[](int i);
-        friend bool operator==(const BUKvec vector1, const BUKvec vector2);
-        friend bool operator<=(const BUKvec vector1, const BUKvec vector2);
-        friend bool operator<(const BUKvec vector1, const BUKvec vector2);
-        friend bool operator>=(const BUKvec vector1, const BUKvec vector2);
-        friend bool operator>(const BUKvec vector1, const BUKvec vector2);
+        bool operator==(const BUKvec vector) const;
+        bool operator!=(const BUKvec vector) const;
+        bool operator<=(const BUKvec vector) const;
+        bool operator<(const BUKvec vector) const;
+        bool operator>=(const BUKvec vector) const;
+        bool operator>(const BUKvec vector) const;
 
-        friend float& operator*(const BUKvec vector1, const BUKvec vector2);
-        friend BUKvec& operator*(const BUKvec vector, const int scalar);
-        friend BUKvec& operator*(const BUKvec scalar, const int vector);
+        double operator*(const BUKvec vector) const;
+        BUKvec operator*(const int scalar) const;
+        friend BUKvec operator*(int scalar, BUKvec vector){
+            return vector*scalar;
+        }
 
-        friend BUKvec& operator/(const BUKvec vector, const int divisor);
-        friend BUKvec& operator/(const int numerator, const BUKvec vector);
+        BUKvec operator/(const int divisor) const;
+        friend float operator/(const int numerator, const BUKvec vector){
+            return numerator/vector.norm();
+        }
 
-        BUKvec& operator+(const BUKvec vector);
-        BUKvec& operator+=(const BUKvec vector);
-        BUKvec& operator-(const BUKvec vector);
-        BUKvec& operator-=(const BUKvec vector);
+        BUKvec operator+(const BUKvec vector) const;
+        void operator+=(const BUKvec vector);
+        BUKvec operator-(const BUKvec vector) const;
+        void operator-=(const BUKvec vector);
 
-        double norm();
+        double norm() const;
 };
 #endif

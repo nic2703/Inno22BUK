@@ -124,47 +124,47 @@ bool BUKPlt::calibrate(bit bitspeed){
     Serial.print("SETUP || Do motors need to be switched?");
     int instance = this->iscorrectmotor(bitspeed);
     switch(instance){
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false;}
         case 0: {
             Serial.println("SETUP || Motors need to be switched");
             flipmotors();
             break;
         }
         case 1: {Serial.println("SETUP || Motors do not need to be flipped"); break;}
-        default: {Serial.println("SETUP || ERROR C1"); return false}
+        default: {Serial.println("SETUP || ERROR C1"); return false;}
     }
 
     Serial.print("SETUP || Motor A: Does direction need to be changed?");
     instance = this->iscorrectdirectionA(bitspeed);
     switch(instance){
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false;}
         case 0: {
             Serial.println("SETUP || Motor A direction needs to be flipped");
             flipdirection(xforward, xback);
             break;
         }
         case 1: {Serial.println("SETUP || Motor A direction do not need to be flipped"); break;}
-        default: {Serial.println("SETUP || ERROR C2"); return false}
+        default: {Serial.println("SETUP || ERROR C2"); return false;}
     }
 
     Serial.print("SETUP || Motor B: Does direction need to be changed?");
     instance = this->iscorrectdirectionB(bitspeed);
     switch(instance){
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); return false;}
         case 0: {
             Serial.println("SETUP || Motor B direction needs to be flipped");
             flipdirection(yforward, yback);
             break;
         }
         case 1: {Serial.println("SETUP || Motor B direction do not need to be flipped"); break;}
-        default: {Serial.println("SETUP || ERROR C3"); return false}
+        default: {Serial.println("SETUP || ERROR C3"); return false;}
     }
 
     Serial.print("SETUP || Motor Setup Complete, moving to corner");
     instance = this->calibratecorner(bitspeed);
     switch(instance){
-        case -2: {Serial.println("SETUP || ERROR A1: Time limit passed on y direction (Motor B)"); return false}
-        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed on x direction (Motor A)"); return false}
+        case -2: {Serial.println("SETUP || ERROR A1: Time limit passed on y direction (Motor B)"); return false;}
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed on x direction (Motor A)"); return false;}
         case 1: {
             Serial.println("SETUP || Corner successfully reached. Preparing coordinates"); 
             servo_down();
@@ -172,9 +172,9 @@ bool BUKPlt::calibrate(bit bitspeed){
             servo_up();
             xpos = 0.1f;
             ypos = 0.1f;
-            return true
+            return true;
         }
-        default: {Serial.println("SETUP || ERROR C4"); return false}
+        default: {Serial.println("SETUP || ERROR C4"); return false;}
     }
 
 }
@@ -291,7 +291,7 @@ int BUKPlt::calibratecorner(bit bitspeed){
     set_brakes(_BRAKE_A, HIGH);
 
     if (micros()>=sandclock+TIME_MAX){
-        return -1
+        return -1;
     }
     if (digitalRead(_BUTTON_XBTM) == HIGH){
         set_direction(_DIR_B, yback);
