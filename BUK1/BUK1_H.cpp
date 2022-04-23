@@ -82,6 +82,28 @@ BUKPlt::~BUKPlt(){
     Serial.println("Plotter object destroyed");
 }
 
+void BUKPlt::flipmotors(){
+    pin brktemp = _BRAKE_A;
+    pin spdtemp = _SPEED_A;
+    pin dirtemp = _DIR_A;
+    _BRAKE_A = _BRAKE_B;
+    _SPEED_A = _SPEED_B;
+    _DIR_A = _DIR_B;
+    _BRAKE_B = brktemp;
+    _SPEED_B = spdtemp;
+    _DIR_B = dirtemp;
+}
+
+void BUKPlt::flipdirection(int forward, int backward){
+    if (forward == HIGH){
+        forward = LOW;
+        backward = HIGH;
+    } else {
+        forward = HIGH;
+        backward = LOW;
+    }
+}
+
 void BUKPlt::servosetup(){
     Serial.println("SETUP || Please make sure the servo horn is detached!");
     delay(1000);
@@ -99,15 +121,156 @@ void BUKPlt::servosetup(){
 bool BUKPlt::calibrate(bit bitspeed){
     Serial.println("SETUP || General Calibration commenced");
     servo_up();
-    int instance = testmotorA(bitspeed);
+    Serial.print("SETUP || Do motors need to be switched?");
+    int instance = this->iscorrectmotor(bitspeed);
+    switch(instance){
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); break;}
+        case 0: {
+            Serial.println("SETUP || Motors need to be switched");
+            flipmotors();
+            break;
+        }
+        case 1: {Serial.println("SETUP || Motors do not need to be flipped"); break;}
+        default: {Serial.println("SETUP || ERROR C1"); break;}
+    }
+
+    Serial.print("SETUP || Motor A: Does direction need to be changed?");
+    instance = this->iscorrectdirectionA(bitspeed);
+    switch(instance){
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); break;}
+        case 0: {
+            Serial.println("SETUP || Motor A direction needs to be flipped");
+            flipdirection(xforward, xback);
+            break;
+        }
+        case 1: {Serial.println("SETUP || Motor A direction do not need to be flipped"); break;}
+        default: {Serial.println("SETUP || ERROR C2"); break;}
+    }
+
+    Serial.print("SETUP || Motor B: Does direction need to be changed?");
+    instance = this->iscorrectdirectionB(bitspeed);
+    switch(instance){
+        case -1: {Serial.println("SETUP || ERROR A1: Time limit passed"); break;}
+        case 0: {
+            Serial.println("SETUP || Motor B direction needs to be flipped");
+            flipdirection(yforward, yback);
+            break;
+        }
+        case 1: {Serial.println("SETUP || Motor B direction do not need to be flipped"); break;}
+        default: {Serial.println("SETUP || ERROR C2"); break;}
+    }
+
+    Serial.print("SETUP || Motor Setup Complete, moving to corner");
+    instance = this->calibratecorner(bitspeed);
+    switch(instance);
+
 }
 
-int BUKPlt::testmotorA(bit bitspeed){
+int BUKPlt::iscorrectmotor(bit bitspeed){
     set_brakes(_BRAKE_A, HIGH);
     set_brakes(_BRAKE_B, HIGH);
 
-    set_direction(_DIR_A)
+    set_direction(_DIR_A, xback);
+    set_speed(_SPEED_A, bitspeed);
+    set_brakes(_BRAKE_A, LOW);
+    unsigned long int sandclock = micros();
+    while (digitalRead(_BUTTON_XBTM) == LOW && digitalRead(_BUTTON_XTOP) == LOW 
+    && digitalRead(_BUTTON_YBTM) == LOW && digitalRead(_BUTTON_YTOP) == LOW 
+    && micros()<=sandclock+TIME_MAX){
+        //welcome to the waiting queue
+    }
+    set_brakes(_BRAKE_A, HIGH);
+
+    int instance = -2;
+    if (micros()>=sandclock+TIME_MAX){
+        instance = -1;
+    }
+    if (digitalRead(_BUTTON_XTOP) == HIGH){
+        instance = 1;
+    }
+    if (digitalRead(_BUTTON_YBTM) == HIGH){
+        instance = 0;
+    }
+    if (digitalRead(_BUTTON_XBTM) == HIGH){
+        instance = 1;
+    }
+    if (digitalRead(_BUTTON_YTOP) == HIGH){
+        instance = 0;
+    }
+    set_direction(_DIR_A, xforward);
+    set_brakes(_BRAKE_A, LOW);
+    delay(500);
+    set_brakes(_BRAKE_A, HIGH);
+    return instance;
 }
 
+int BUKPlt::iscorrectdirectionA(bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
 
+    set_direction(_DIR_A, xback);
+    set_speed(_SPEED_A, bitspeed);
+    set_brakes(_BRAKE_A, LOW);
+    unsigned long int sandclock = micros();
+    while (digitalRead(_BUTTON_XBTM) == LOW && digitalRead(_BUTTON_XTOP) == LOW && micros()<=sandclock+TIME_MAX){
+        //welcome to the waiting queue
+    }
+    set_brakes(_BRAKE_A, HIGH);
+    
+    int instance = -2;
+    if (micros()>=sandclock+TIME_MAX){
+        instance = -1;
+    }
+    if (digitalRead(_BUTTON_XTOP) == HIGH){
+        instance = 0;
+    }
+    if (digitalRead(_BUTTON_XBTM)){
+        instance = 1;
+    }
+    set_direction(_DIR_A, xforward);
+    set_brakes(_BRAKE_A, LOW);
+    delay(500);
+    set_brakes(_BRAKE_A, HIGH);
+    return instance;
+}
 
+int BUKPlt::iscorrectdirectionB(bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+
+    set_direction(_DIR_B, yback);
+    set_speed(_SPEED_B, bitspeed);
+    set_brakes(_BRAKE_B, LOW);
+    unsigned long int sandclock = micros();
+    while (digitalRead(_BUTTON_YBTM) == LOW && digitalRead(_BUTTON_YTOP) == LOW && micros()<=sandclock+TIME_MAX){
+        //welcome to the waiting queue
+    }
+    set_brakes(_BRAKE_B, HIGH);
+    
+    int instance = -2;
+    if (micros()>=sandclock+TIME_MAX){
+        instance = -1;
+    }
+    if (digitalRead(_BUTTON_YTOP) == HIGH){
+        instance = 0;
+    }
+    if (digitalRead(_BUTTON_YBTM)){
+        instance = 1;
+    }
+    set_direction(_DIR_B, yforward);
+    set_brakes(_BRAKE_B, LOW);
+    delay(500);
+    set_brakes(_BRAKE_B, HIGH);
+    return instance;
+}
+
+int BUKPlt::calibratecorner(bit bitspeed){
+    set_direction(_DIR_A, xback);
+    set_speed(_SPEED_A, bitspeed);
+    set_brakes(_BRAKE_A, LOW);
+    unsigned long int sandclock = micros();
+    while (digitalRead(_BUTTON_XBTM) == LOW && micros()<=sandclock+TIME_MAX){
+        //welcome to the waiting queue
+    }
+    set_brakes(_BRAKE)
+}

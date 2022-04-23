@@ -39,12 +39,13 @@ inline bit servo_angle();
 
 class BUKPlt{
     private:
-        float xpos = 0.0f, float ypos = 0.0f;
+        float xpos = 0.0f, ypos = 0.0f;
         int xforward, xback, yforward, yback;
         unsigned long int TIME_MAX;
         pin _BRAKE_A, _BRAKE_B, _SPEED_A, _SPEED_B, _DIR_A, _DIR_B, _SERVO_LATCH, _BUTTON_XTOP, _BUTTON_XBTM, _BUTTON_YTOP, _BUTTON_YBTM;
 
-
+        void flipmotors();
+        void flipdirection();
     public:
         BUKPlt();
         BUKPlt(BUKPlt &&) = default;
@@ -55,7 +56,10 @@ class BUKPlt{
 
         void servosetup();
         bool calibrate(bit bitspeed);
-        int testmotor(bit bitspeed);
+        int iscorrectmotor(bit bitspeed);
+        int iscorrectdirectionA(bit bitspeed);
+        int iscorrectdirectionB(bit bitspeed);
+        int calibratecorner(bit bitspeed);
         bool readinstructions(const filename& nameoffile);
 };
 
