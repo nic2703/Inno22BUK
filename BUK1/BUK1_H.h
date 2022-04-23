@@ -13,16 +13,6 @@ typedef byte pin;
 typedef unsigned int bit;
 typedef string filename;
 
-#define TIME_MAX        10000000
-#define _BRAKE_A        9
-#define _BRAKE_B        8
-#define _SPEED_A        3 
-#define _SPEED_B        11
-#define _DIR_A          12
-#define _DIR_B          13
-#define _SERVO_LATCH    4
-#define _SERVO_POTPIN   0       //tbd
-
 //Various angles and such
 #define _SERVO_TOP      180
 #define _SERVO_BOTTOM   0
@@ -35,13 +25,14 @@ const double R_PULLEY = 10;
 #define BITS_TO_SPEED(s) (1.012e-5 * cube(s) - 6.19e-3 * sq(s) + 1.332 * s - 37.24)
 
 //Motor functions here
-inline void set_speed(pin motorPin, bit bitspeed);
-inline void set_brakes(pin motorPin, int state);
+inline void set_speed(pin spdPin, bit bitspeed);
+inline void set_brakes(pin brkPin, int state);
+inline void set_direction(pin dirPin, int state);
 
 //Servo functions here
 inline void servo_goto(bit angle);
-inline bool servo_up();
-inline bool servo_down();
+inline void servo_up();
+inline void servo_down();
 inline bit servo_angle();
 
 //Math functions here
@@ -49,7 +40,11 @@ inline bit servo_angle();
 class BUKPlt{
     private:
         float xpos = 0.0f, float ypos = 0.0f;
-        bool islifted = false;
+        int xforward, xback, yforward, yback;
+        unsigned long int TIME_MAX;
+        pin _BRAKE_A, _BRAKE_B, _SPEED_A, _SPEED_B, _DIR_A, _DIR_B, _SERVO_LATCH, _BUTTON_XTOP, _BUTTON_XBTM, _BUTTON_YTOP, _BUTTON_YBTM;
+
+
     public:
         BUKPlt();
         BUKPlt(BUKPlt &&) = default;
@@ -58,7 +53,9 @@ class BUKPlt{
         BUKPlt &operator=(const BUKPlt &) = default;
         ~BUKPlt();
 
-        bool coordset();
+        void servosetup();
+        bool calibrate(bit bitspeed);
+        int testmotor(bit bitspeed);
         bool readinstructions(const filename& nameoffile);
 };
 
