@@ -378,6 +378,8 @@ bool BUKPlt::penM(BUKvec& coords, bit bitspeed){
         //welcome to the waiting queue
         if (emergencystop()){
             Serial.println(" E-STOP");
+            set_brakes(_BRAKE_A, LOW);
+            set_brakes(_BRAKE_B, LOW);
             return false;
         }
     }

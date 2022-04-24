@@ -18,7 +18,7 @@ typedef unsigned int bit;
 #define _PAPER_WIDTH    210
 
 //in mm
-const double R_GEAR = 27;
+const double R_GEAR = 24/2;
 const double R_PULLEY = 10;
 
 #define SPEED_TO_BITS(s) ((28.97 + 3.402 * (s)-0.1736 * sq(s) + 0.003101 * cube(s)) * 67.7)
