@@ -13,6 +13,12 @@ Perhaps to be added:
 ERROR HANDLING
 Error A1: The TIME_MAX maximum time for the execution of a motor command has been exceeded. The motors have been turned off.
 
+Error A2: The coordinates provided to one of the following functions
+- penM()
+terminates outside of the allowed drawing area (0 < x < _PAPER_WIDTH && 0 < y < _PAPER_LENGTH)
+
+Error A3: An emergency stop was initiated. One of the edge sensors or the emergency stop button was pressed.
+
 Error C1: In the calibrate function, if no satisfactory integer is returned by the iscorrectmotor function (not -1, 0 or 1), this means that no button has been hit and the time has NOT been exceeded, which means the function has terminated for some other issue.
 
 Error C2: Analog to C1 but for the iscorrectdirectionA function

@@ -1,7 +1,5 @@
 #include "BUK1_H.h"
 #include "Arduino.h";
-#include "Servo.h";
-#include "string"
 
 //Motor functions here
 inline void set_speed(pin spdPin, bit bitspeed){
@@ -13,7 +11,7 @@ inline void set_brakes(pin brkPin, int state){
 }
 
 inline void set_direction(pin dirPin, int state){
-    digitalWrite(dirPin, state)
+    digitalWrite(dirPin, state);
 }
 
 //Servo functions here
@@ -38,9 +36,22 @@ inline bit servo_angle(){
 
 //Math functions here
 
+inline bool outofbounds(BUKvec coords){
+    if (coords[0]<= 0.0f || coords[0]>= _PAPER_WIDTH || coords[1]<= 0.0f || coords[1]>= _PAPER_LENGTH){
+        Serial.print("DRAW || ERROR A2: Coordinates provided ");
+        Serial.print(coords[0]);
+        Serial.print(" , ");
+        Serial.print(coords[1]);
+        Serial.print(" are out of bounds.");
+        return true;
+    }
+    return false;
+}
 
+
+//Class functions here
 BUKPlt::BUKPlt(){
-    xpos = ypos = -1.0f;
+    position = BUKvec(-1.0f, -1.0f);
     
     TIME_MAX = 10000000;
     _BRAKE_A = 9;
@@ -54,6 +65,7 @@ BUKPlt::BUKPlt(){
     _BUTTON_XBTM = 0;
     _BUTTON_YTOP = 0;
     _BUTTON_YBTM = 0;
+    _BUTTON_EMERGENCY = 0;
 
     xforward = HIGH;
     xback = LOW;
@@ -104,6 +116,12 @@ void BUKPlt::flipdirection(int forward, int backward){
     }
 }
 
+void outputBUKvec(BUKvec& coords){
+    Serial.print(coords[0]);
+    Serial.print(" , ");
+    Serial.print(coords[1]);
+}
+
 void BUKPlt::servosetup(){
     Serial.println("SETUP || Please make sure the servo horn is detached!");
     delay(1000);
@@ -111,7 +129,7 @@ void BUKPlt::servosetup(){
     for (int i = 0; i < 19; i++){
         //welcome to the waiting queue
         servo_goto(i*10);
-        Serial.print("SETUP || Current angle: ")
+        Serial.print("SETUP || Current angle: ");
         Serial.println(i*10);
         delay(500);
     }
@@ -170,8 +188,10 @@ bool BUKPlt::calibrate(bit bitspeed){
             servo_down();
             delay(500);
             servo_up();
-            xpos = 0.1f;
-            ypos = 0.1f;
+            position = BUKvec(0.1f, 0.1f);
+            Serial.print("SETUP || Position set to ");
+            outputBUKvec(position);
+            Serial.println('\0');
             return true;
         }
         default: {Serial.println("SETUP || ERROR C4"); return false;}
@@ -307,6 +327,13 @@ int BUKPlt::calibratecorner(bit bitspeed){
             return -2;
         }
         if (digitalRead(_BUTTON_YBTM) == HIGH){
+            set_direction(_DIR_A, xforward);
+            set_direction(_DIR_B, yforward);
+            set_brakes(_BRAKE_A, LOW);
+            set_brakes(_BRAKE_B, LOW);
+            delay(500);
+            set_brakes(_BRAKE_A, HIGH);
+            set_brakes(_BRAKE_B, HIGH);
             return 1;
         }
         return -3;
@@ -314,8 +341,51 @@ int BUKPlt::calibratecorner(bit bitspeed){
     return 0;
 }
 
-bool BUKPlt::drawlineto(){
+bool BUKPlt::emergencystop(){
+    if (digitalRead(_BUTTON_XBTM) == HIGH || digitalRead(_BUTTON_XTOP) == HIGH 
+    || digitalRead(_BUTTON_YBTM) == HIGH || digitalRead(_BUTTON_YTOP) == HIGH
+    || digitalRead(_BUTTON_EMERGENCY) == HIGH){
+        Serial.println("EMERGENCY || ERROR A3: Emergency Stop initiated");
+        return true;
+    }
+    return false;
+}
+
+bool BUKPlt::penM(BUKvec& coords, bit bitspeed){
     servo_up();
+    if (outofbounds(coords)){
+        return false;
+    }
+    BUKvec direction = coords-position;
+    unsigned long int speedmmpers_X = BITS_TO_SPEED((float)bitspeed*(direction[0])/direction.norm());
+    unsigned long int timeseconds_X = direction[0]/speedmmpers_X;
+    unsigned long int timemicros_X = timeseconds_X*1000*1000;
+    unsigned long int arrivaldate = micros()+timemicros_X;
+
+    Serial.print("penM || Drawing to coordinates ");
+    outputBUKvec(coords);
+    Serial.print(" via direction ");
+    outputBUKvec(direction);
+
+    direction[0]>=0.0f?set_direction(_DIR_A, xforward):set_direction(_DIR_A, xback);
+    direction[1]>=0.0f?set_direction(_DIR_B, yforward):set_direction(_DIR_B, yback);
+    set_speed(_SPEED_A, (float)bitspeed*(direction[0])/direction.norm());
+    set_speed(_SPEED_B, (float)bitspeed*(direction[1])/direction.norm());
+    set_brakes(_BRAKE_A, LOW);
+    set_brakes(_BRAKE_B, LOW);
+
+    while(micros()<=arrivaldate){
+        //welcome to the waiting queue
+        if (emergencystop()){
+            Serial.println(" E-STOP");
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_A, LOW);
+    set_brakes(_BRAKE_B, LOW);
+    Serial.println(" SUCCESS!");
+    position = coords;
+    return true;
 }
 
 

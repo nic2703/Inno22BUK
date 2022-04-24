@@ -11,7 +11,7 @@ class BUKvec{
         float x;
         float y;
     public:
-        BUKvec(float init_x, float init_y);
+        BUKvec(float init_x = 0, float init_y = 0);
         ~BUKvec();
         BUKvec& operator=(const BUKvec&);
         float& operator[](int i);
