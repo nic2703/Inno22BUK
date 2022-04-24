@@ -6,7 +6,7 @@
 #define BUK1_H_
 
 #include "Arduino.h";
-#include "Servo.h";
+#include "BUK1_VEC.h";
 
 typedef byte pin;
 typedef unsigned int bit;
@@ -14,6 +14,8 @@ typedef unsigned int bit;
 //Various angles and such
 #define _SERVO_TOP      180
 #define _SERVO_BOTTOM   0
+#define _PAPER_LENGTH   297         //Please include safety margin when used
+#define _PAPER_WIDTH    210
 
 //in mm
 const double R_GEAR = 27;
@@ -34,16 +36,21 @@ inline void servo_down();
 inline bit servo_angle();
 
 //Math functions here
+inline double cube(double s){
+    return sq(s)*s;
+}
+inline bool outofbounds(BUKvec coords);
+
 
 class BUKPlt{
     private:
-        float xpos = 0.0f, ypos = 0.0f;
+        BUKvec position;
         int xforward, xback, yforward, yback;
         unsigned long int TIME_MAX;
-        pin _BRAKE_A, _BRAKE_B, _SPEED_A, _SPEED_B, _DIR_A, _DIR_B, _SERVO_LATCH, _BUTTON_XTOP, _BUTTON_XBTM, _BUTTON_YTOP, _BUTTON_YBTM;
+        pin _BRAKE_A, _BRAKE_B, _SPEED_A, _SPEED_B, _DIR_A, _DIR_B, _SERVO_LATCH, _BUTTON_XTOP, _BUTTON_XBTM, _BUTTON_YTOP, _BUTTON_YBTM, _BUTTON_EMERGENCY;
 
         void flipmotors();
-        void flipdirection();
+        void flipdirection(int forward, int backward);
     public:
         BUKPlt();
         BUKPlt(BUKPlt &&) = default;
@@ -52,15 +59,18 @@ class BUKPlt{
         BUKPlt &operator=(const BUKPlt &) = default;
         ~BUKPlt();
 
+        void outputBUKvec(BUKvec& coords);
+
         void servosetup();
         bool calibrate(bit bitspeed);
         int iscorrectmotor(bit bitspeed);
         int iscorrectdirectionA(bit bitspeed);
         int iscorrectdirectionB(bit bitspeed);
         int calibratecorner(bit bitspeed);
-        bool readinstructions(const filename& nameoffile);
 
-        bool drawlineto(float x, float y);
+        bool emergencystop();
+
+        bool penM(BUKvec& coords, bit bitspeed);
 };
 
 #endif
