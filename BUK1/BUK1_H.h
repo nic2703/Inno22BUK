@@ -40,6 +40,7 @@ inline double cube(double s){
     return sq(s)*s;
 }
 inline bool outofbounds(BUKvec coords);
+BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec, unsigned int i);
 
 
 class BUKPlt{
@@ -71,6 +72,17 @@ class BUKPlt{
         bool emergencystop();
 
         bool penM(BUKvec& coords, bit bitspeed);
+        bool penZ(BUKvec& coords, bit bitspeed);
+        bool penL(BUKvec& coords, bit bitspeed);
+        bool penH(float& h, bit bitspeed);
+        bool penV(float& v, bit bitspeed);
+        
+        bool penC(BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec);       //precision between 1 and 24, for a maximum of 25 subpoints (inc. start)
+
+        bool adjustright(unsigned int distance, bit bitspeed);
+        bool adjustleft(unsigned int distance, bit bitspeed);
+        bool adjustup(unsigned int distance, bit bitspeed);
+        bool adjustdown(unsigned int distance, bit bitspeed);
 };
 
 #endif

@@ -15,8 +15,6 @@ inline void set_direction(pin dirPin, int state){
 }
 
 //Servo functions here
-Servo PenServo;
-
 inline void servo_goto(bit angle){
     PenServo.write(angle);
     delay(15);
@@ -35,7 +33,6 @@ inline bit servo_angle(){
 }
 
 //Math functions here
-
 inline bool outofbounds(BUKvec coords){
     if (coords[0]<= 0.0f || coords[0]>= _PAPER_WIDTH || coords[1]<= 0.0f || coords[1]>= _PAPER_LENGTH){
         Serial.print("DRAW || ERROR A2: Coordinates provided ");
@@ -48,11 +45,20 @@ inline bool outofbounds(BUKvec coords){
     return false;
 }
 
+BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec, unsigned int i){
+    float t = i/prec;
+    float x = cube(1-t)*position[0] + sq(1-t)*3*t*control1[0] + (1-t)*3*sq(t)*control2[0] + cube(t)*coords[0];
+    float y = cube(1-t)*position[1] + sq(1-t)*3*t*control1[1] + (1-t)*3*sq(t)*control2[1] + cube(t)*coords[1];
+    BUKvec subpoint(x, y);
+    return subpoint;
+}
 
 //Class functions here
 BUKPlt::BUKPlt(){
     position = BUKvec(-1.0f, -1.0f);
     
+    Servo PenServo;
+
     TIME_MAX = 10000000;
     _BRAKE_A = 9;
     _BRAKE_B = 8;
@@ -94,6 +100,7 @@ BUKPlt::~BUKPlt(){
     Serial.println("Plotter object destroyed");
 }
 
+
 void BUKPlt::flipmotors(){
     pin brktemp = _BRAKE_A;
     pin spdtemp = _SPEED_A;
@@ -116,11 +123,13 @@ void BUKPlt::flipdirection(int forward, int backward){
     }
 }
 
-void outputBUKvec(BUKvec& coords){
+
+void BUKPlt::outputBUKvec(BUKvec& coords){
     Serial.print(coords[0]);
     Serial.print(" , ");
     Serial.print(coords[1]);
 }
+
 
 void BUKPlt::servosetup(){
     Serial.println("SETUP || Please make sure the servo horn is detached!");
@@ -341,6 +350,7 @@ int BUKPlt::calibratecorner(bit bitspeed){
     return 0;
 }
 
+
 bool BUKPlt::emergencystop(){
     if (digitalRead(_BUTTON_XBTM) == HIGH || digitalRead(_BUTTON_XTOP) == HIGH 
     || digitalRead(_BUTTON_YBTM) == HIGH || digitalRead(_BUTTON_YTOP) == HIGH
@@ -351,8 +361,29 @@ bool BUKPlt::emergencystop(){
     return false;
 }
 
+
 bool BUKPlt::penM(BUKvec& coords, bit bitspeed){
     servo_up();
+    Serial.println("penM || Moving to coordinates");
+    if(!penL(coords, bitspeed)){
+        return false;
+    }
+    servo_down();
+    return true;
+}
+
+bool BUKPlt::penZ(BUKvec& coords, bit bitspeed){
+    Serial.println("penZ || Moving to coordinates");
+    if(!penL(coords, bitspeed)){
+        return false;
+    }
+    servo_up();
+    return true;
+}
+
+bool BUKPlt::penL(BUKvec& coords, bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
     if (outofbounds(coords)){
         return false;
     }
@@ -362,7 +393,7 @@ bool BUKPlt::penM(BUKvec& coords, bit bitspeed){
     unsigned long int timemicros_X = timeseconds_X*1000*1000;
     unsigned long int arrivaldate = micros()+timemicros_X;
 
-    Serial.print("penM || Drawing to coordinates ");
+    Serial.print("penL || Drawing to coordinates ");
     outputBUKvec(coords);
     Serial.print(" via direction ");
     outputBUKvec(direction);
@@ -378,16 +409,164 @@ bool BUKPlt::penM(BUKvec& coords, bit bitspeed){
         //welcome to the waiting queue
         if (emergencystop()){
             Serial.println(" E-STOP");
-            set_brakes(_BRAKE_A, LOW);
-            set_brakes(_BRAKE_B, LOW);
+            set_brakes(_BRAKE_A, HIGH);
+            set_brakes(_BRAKE_B, HIGH);
             return false;
         }
     }
-    set_brakes(_BRAKE_A, LOW);
-    set_brakes(_BRAKE_B, LOW);
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
     Serial.println(" SUCCESS!");
     position = coords;
     return true;
 }
 
+bool BUKPlt::penH(float& h, bit bitspeed){
+    BUKvec coords = BUKvec(h, position[1]);
+    servo_down();
+    if(!penL(coords, bitspeed)){
+        return false;
+    }
+    return true;
+}
 
+bool BUKPlt::penV(float& v, bit bitspeed){
+    BUKvec coords = BUKvec(position[0], v);
+    servo_down();
+    if(!penL(coords, bitspeed)){
+        return false;
+    }
+    return true;
+}
+
+
+bool BUKPlt::penC(BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    if (prec<=0 || prec>= 25){
+        return false;
+    }
+    BUKvec *subpoint = new BUKvec[prec];
+    for (unsigned int i = 0; i<=prec; i++){
+        subpoint[i] = BUKvec(BUKBezier(position, control1, control2, coords, prec, i));
+    }
+
+}
+
+
+
+bool BUKPlt::adjustright(unsigned int distance, bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    unsigned long int speedmmpers_X = BITS_TO_SPEED(bitspeed);
+    unsigned long int timeseconds_X = distance/speedmmpers_X;
+    unsigned long int timemicros_X = timeseconds_X*1000*1000;
+    unsigned long int arrivaldate = micros()+timemicros_X;
+
+    Serial.print("adjustright || Moving distance ");
+    Serial.print(distance);
+
+    set_direction(_DIR_A, xforward);
+    set_speed(_SPEED_A, bitspeed);
+    set_brakes(_BRAKE_A, LOW);
+    while(micros()<=arrivaldate){
+        //welcome to the waiting queue
+        if (emergencystop()){
+            Serial.println(" E-STOP");
+            set_brakes(_BRAKE_A, HIGH);
+            set_brakes(_BRAKE_B, HIGH);
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_A, HIGH);
+    Serial.println(" SUCCESS!");
+    position = position+BUKvec(distance, 0);
+    return true;
+}
+
+bool BUKPlt::adjustleft(unsigned int distance, bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    unsigned long int speedmmpers_X = BITS_TO_SPEED(bitspeed);
+    unsigned long int timeseconds_X = distance/speedmmpers_X;
+    unsigned long int timemicros_X = timeseconds_X*1000*1000;
+    unsigned long int arrivaldate = micros()+timemicros_X;
+
+    Serial.print("adjustleft || Moving distance ");
+    Serial.print(distance);
+
+    set_direction(_DIR_A, xback);
+    set_speed(_SPEED_A, bitspeed);
+    set_brakes(_BRAKE_A, LOW);
+    while(micros()<=arrivaldate){
+        //welcome to the waiting queue
+        if (emergencystop()){
+            Serial.println(" E-STOP");
+            set_brakes(_BRAKE_A, HIGH);
+            set_brakes(_BRAKE_B, HIGH);
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_A, HIGH);
+    Serial.println(" SUCCESS!");
+    position = position+BUKvec(-distance, 0);
+    return true;
+}
+
+bool BUKPlt::adjustup(unsigned int distance, bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    unsigned long int speedmmpers_Y = BITS_TO_SPEED(bitspeed);
+    unsigned long int timeseconds_Y = distance/speedmmpers_Y;
+    unsigned long int timemicros_Y = timeseconds_Y*1000*1000;
+    unsigned long int arrivaldate = micros()+timemicros_Y;
+
+    Serial.print("adjustup || Moving distance ");
+    Serial.print(distance);
+
+    set_direction(_DIR_B, yforward);
+    set_speed(_SPEED_B, bitspeed);
+    set_brakes(_BRAKE_B, LOW);
+    while(micros()<=arrivaldate){
+        //welcome to the waiting queue
+        if (emergencystop()){
+            Serial.println(" E-STOP");
+            set_brakes(_BRAKE_A, HIGH);
+            set_brakes(_BRAKE_B, HIGH);
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_B, HIGH);
+    Serial.println(" SUCCESS!");
+    position = position+BUKvec(0, distance);
+    return true;
+}
+
+bool BUKPlt::adjustdown(unsigned int distance, bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    unsigned long int speedmmpers_Y = BITS_TO_SPEED(bitspeed);
+    unsigned long int timeseconds_Y = distance/speedmmpers_Y;
+    unsigned long int timemicros_Y = timeseconds_Y*1000*1000;
+    unsigned long int arrivaldate = micros()+timemicros_Y;
+
+    Serial.print("adjustdown || Moving distance ");
+    Serial.print(distance);
+
+    set_direction(_DIR_B, yback);
+    set_speed(_SPEED_B, bitspeed);
+    set_brakes(_BRAKE_B, LOW);
+    while(micros()<=arrivaldate){
+        //welcome to the waiting queue
+        if (emergencystop()){
+            Serial.println(" E-STOP");
+            set_brakes(_BRAKE_A, HIGH);
+            set_brakes(_BRAKE_B, HIGH);
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_B, HIGH);
+    Serial.println(" SUCCESS!");
+    position = position+BUKvec(0, -distance);
+    return true;
+}
