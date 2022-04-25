@@ -41,8 +41,10 @@ inline double cube(double s){
 }
 inline bool outofbounds(BUKvec coords);
 BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec, unsigned int i);
+BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& coords, unsigned int prec, unsigned int i);
 
 
+//Class functions here
 class BUKPlt{
     private:
         BUKvec position;
@@ -77,7 +79,8 @@ class BUKPlt{
         bool penH(float& h, bit bitspeed);
         bool penV(float& v, bit bitspeed);
         
-        bool penC(BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec);       //precision between 1 and 24, for a maximum of 25 subpoints (inc. start)
+        bool penC(BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec, bit bitspeed);       //precision between 1 and 24, for a maximum of 25 subpoints (inc. start)
+        bool penQ(BUKvec& control1, BUKvec& coords, unsigned int prec, bit bitspeed);
 
         bool adjustright(unsigned int distance, bit bitspeed);
         bool adjustleft(unsigned int distance, bit bitspeed);

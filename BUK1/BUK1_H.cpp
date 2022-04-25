@@ -53,6 +53,14 @@ BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& control2, BUKvec& 
     return subpoint;
 }
 
+BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& coords, unsigned int prec, unsigned int i){
+    float t = i/prec;
+    float x = sq(1-t)*position[0] + (1-t)*2*t*control1[0] + sq(t)*coords[0];
+    float y = sq(1-t)*position[1] + (1-t)*2*t*control1[1] + sq(t)*coords[1];
+    BUKvec subpoint(x, y);
+    return subpoint;
+}
+
 //Class functions here
 BUKPlt::BUKPlt(){
     position = BUKvec(-1.0f, -1.0f);
@@ -440,19 +448,75 @@ bool BUKPlt::penV(float& v, bit bitspeed){
 }
 
 
-bool BUKPlt::penC(BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec){
+bool BUKPlt::penC(BUKvec& control1, BUKvec& control2, BUKvec& coords, unsigned int prec, bit bitspeed){
     set_brakes(_BRAKE_A, HIGH);
     set_brakes(_BRAKE_B, HIGH);
     if (prec<=0 || prec>= 25){
         return false;
     }
+
+    Serial.print("penC || Calculating ");
+    Serial.print(prec+1);
+    Serial.println(" subpoints");
+
     BUKvec *subpoint = new BUKvec[prec];
     for (unsigned int i = 0; i<=prec; i++){
         subpoint[i] = BUKvec(BUKBezier(position, control1, control2, coords, prec, i));
+        Serial.print("penC || Subpoint ");
+        Serial.print(i);
+        Serial.print(": ");
+        outputBUKvec(subpoint[i]);
+        Serial.println('\0');
+
+        if (outofbounds(subpoint[i])){
+            return false;
+        }
     }
 
+    for (unsigned int i = 0; i<=prec; i++){
+        if (!penL(subpoint[i], bitspeed)){
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    return true;
 }
 
+bool BUKPlt::penQ(BUKvec& control1, BUKvec& coords, unsigned int prec, bit bitspeed){
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    if (prec<=0 || prec>= 25){
+        return false;
+    }
+
+    Serial.print("penQ || Calculating ");
+    Serial.print(prec+1);
+    Serial.println(" subpoints");
+
+    BUKvec *subpoint = new BUKvec[prec];
+    for (unsigned int i = 0; i<=prec; i++){
+        subpoint[i] = BUKvec(BUKBezier(position, control1, coords, prec, i));
+        Serial.print("penQ || Subpoint ");
+        Serial.print(i);
+        Serial.print(": ");
+        outputBUKvec(subpoint[i]);
+        Serial.println('\0');
+
+        if (outofbounds(subpoint[i])){
+            return false;
+        }
+    }
+
+    for (unsigned int i = 0; i<=prec; i++){
+        if (!penL(subpoint[i], bitspeed)){
+            return false;
+        }
+    }
+    set_brakes(_BRAKE_A, HIGH);
+    set_brakes(_BRAKE_B, HIGH);
+    return true;
+}
 
 
 bool BUKPlt::adjustright(unsigned int distance, bit bitspeed){

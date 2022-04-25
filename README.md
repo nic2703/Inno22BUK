@@ -29,3 +29,7 @@ Error C4: This occurs when no satisfactory return is given for the calibratecorn
 
 NEEDED
 - Small code snippet to output servo angles when starting the build
+
+POTENTIAL ISSUES
+- Servo functions might need to be under the BUKPlt constructor to have the Servo object initialized´
+- Do non-member servo functions (aka servo_up(), servo_down(), etc...) have access to the Servo object when it it initialized in the BUKPlt constructor?
