@@ -11,6 +11,8 @@
 typedef byte pin;
 typedef unsigned int bit;
 
+Servo PenServo;
+
 //Various angles and such
 #define _SERVO_TOP      180
 #define _SERVO_BOTTOM   0

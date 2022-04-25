@@ -64,8 +64,6 @@ BUKvec& BUKBezier(BUKvec& position, BUKvec& control1, BUKvec& coords, unsigned i
 //Class functions here
 BUKPlt::BUKPlt(){
     position = BUKvec(-1.0f, -1.0f);
-    
-    Servo PenServo;
 
     TIME_MAX = 10000000;
     _BRAKE_A = 9;
@@ -102,6 +100,7 @@ BUKPlt::BUKPlt(){
     pinMode(_BUTTON_XBTM, INPUT);
     pinMode(_BUTTON_YTOP, INPUT);
     pinMode(_BUTTON_YBTM, INPUT);
+    pinMode(_BUTTON_EMERGENCY, INPUT);
 }
 
 BUKPlt::~BUKPlt(){
